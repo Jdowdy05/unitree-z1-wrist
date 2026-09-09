@@ -1,0 +1,459 @@
+"""Parametric Unitree Z1 wrist CAD. Dimensions are in millimetres.
+
+Run this macro in FreeCAD after editing dimensions.json. Only standard FreeCAD
+modules are required. The resulting geometry is a prototype, not a load rating.
+"""
+import json
+import math
+import hashlib
+from pathlib import Path
+import FreeCAD as App
+import Part
+import MeshPart
+V = App.Vector
+SOURCE_DIR = Path(__file__).resolve().parent if '__file__' in globals() else Path(App.getUserMacroDir())
+ROOT = SOURCE_DIR.parent.parent
+
+def box(x, y, z, dx, dy, dz):
+    return Part.makeBox(dx, dy, dz, V(x, y, z))
+
+def cyl(r, h, p, d=(1, 0, 0)):
+    return Part.makeCylinder(r, h, V(*p), V(*d))
+
+def primitive_fuse(shapes):
+    s = shapes[0]
+    for t in shapes[1:]:
+        s = s.fuse(t)
+    return s.removeSplitter()
+
+def primitive_cut(s, tools):
+    for t in tools:
+        s = s.cut(t)
+    return s.removeSplitter()
+
+def round_xy(x0, x1, y0, y1, z, t, r):
+    return fuse([box(x0 + r, y0, z, x1 - x0 - 2 * r, y1 - y0, t), box(x0, y0 + r, z, x1 - x0, y1 - y0 - 2 * r, t)] + [cyl(r, t, (x, y, z), (0, 0, 1)) for x in (x0 + r, x1 - r) for y in (y0 + r, y1 - r)])
+
+def round_yz(y0, y1, z0, z1, x, t, r):
+    return fuse([box(x, y0 + r, z0, t, y1 - y0 - 2 * r, z1 - z0), box(x, y0, z0 + r, t, y1 - y0, z1 - z0 - 2 * r)] + [cyl(r, t, (x, y, z)) for y in (y0 + r, y1 - r) for z in (z0 + r, z1 - r)])
+
+def fuse(shapes):
+    s = primitive_fuse(shapes)
+    if s.Volume + 1e-05 < max((p.Volume for p in shapes)):
+        raise ValueError('Boolean union lost input material')
+    return s
+
+def cut(shape, tools):
+    s = primitive_cut(shape, tools)
+    if s.Volume > shape.Volume + 1e-05 or s.Volume < 0:
+        raise ValueError('Boolean subtraction volume invalid')
+    return s
+
+def at(shape, angle=0, offset=(0, 0, 0)):
+    s = shape.copy()
+    if angle:
+        s.rotate(V(0, 0, 0), V(0, 0, 1), angle)
+    s.translate(V(*offset))
+    return s
+
+def tangent_retainer_outline(R, r, d, x, t):
+    ny = (R - r) / d
+    nz = math.sqrt(1 - ny * ny)
+    a = V(x, R * ny, R * nz)
+    b = V(x, d + r * ny, r * nz)
+    cc = V(x, d + r * ny, -r * nz)
+    dd = V(x, R * ny, -R * nz)
+    e = V(x, -R * ny, -R * nz)
+    f = V(x, -d - r * ny, -r * nz)
+    g = V(x, -d - r * ny, r * nz)
+    hh = V(x, -R * ny, R * nz)
+    edges = [Part.makeLine(a, b), Part.Arc(b, V(x, d + r, 0), cc).toShape(), Part.makeLine(cc, dd), Part.Arc(dd, V(x, 0, -R), e).toShape(), Part.makeLine(e, f), Part.Arc(f, V(x, -d - r, 0), g).toShape(), Part.makeLine(g, hh), Part.Arc(hh, V(x, 0, R), a).toShape()]
+    return Part.Face(Part.Wire(edges)).extrude(V(t, 0, 0))
+
+def support_rib(front, u, z0):
+    zs = [z0 + (0 - z0) * q for q in (0, 0.2, 0.45, 0.7, 1)]
+    widths = [4.5, 4.35, 3.8, 3.25, 3]
+    left = [V(front - 8, u - w, z) for z, w in zip(zs, widths)]
+    right = [V(front - 8, u + w, z) for z, w in zip(zs, widths)]
+    l = Part.BSplineCurve()
+    l.interpolate(left)
+    r = Part.BSplineCurve()
+    r.interpolate(list(reversed(right)))
+    wire = Part.Wire([l.toShape(), Part.makeLine(left[-1], right[-1]), r.toShape(), Part.makeLine(right[0], left[0])])
+    profile = Part.Face(wire).extrude(V(6, 0, 0))
+    return fuse([profile, box(front - 8, u - 3, z0, 6, 6, -z0)])
+
+def nut_prism_x(x, u, z, af, t):
+    r = af / math.sqrt(3)
+    pts = [V(x, u + r * math.cos(i * math.pi / 3), z + r * math.sin(i * math.pi / 3)) for i in range(6)]
+    return Part.Face(Part.makePolygon(pts + [pts[0]])).extrude(V(t, 0, 0))
+
+def foot_mounts(front, zbase, t=5.5):
+    feet = []
+    tools = []
+    for u in (-18.5, 18.5):
+        foot = round_xy(front - 8, front + 10, u - 6, u + 6, zbase, t, 3)
+        hole = cyl(1.7, t + 2, (front + 4, u, zbase - 1), (0, 0, 1))
+        n = nut_prism_x(0, 0, 0, 5.9, 2.8)
+        n.rotate(V(0, 0, 0), V(0, 1, 0), 90)
+        n.translate(V(front + 4, u, zbase + t))
+        feet.append(foot)
+        tools += [hole, n]
+    return cut(fuse(feet + [box(front - 4, -18.5, zbase, 4, 37, t)]), tools)
+
+def disk_with_flats(z, t, c):
+    return cyl(22, t, (0, 0, z), (0, 0, 1)).common(box(-23, -19, z, 46, 38, t))
+
+def module(front, c):
+    R = c['packaging']['housing_radius_mm']
+    body = box(front, -9.5, -10, 23, 34, 20)
+    horn = cyl(8, 3, (front - 3, 0, 0))
+    casing = fuse([round_yz(-14, 27.5, -13, 13, front - 4, 4, 5), cyl(R, 5, (front - 9, 0, 0))] + [cyl(5.5, 8.5, (front - 9, u, 0)) for u in (-18.5, 18.5)])
+    cuts = [cyl(13.6, 4.1, (front - 9.1, 0, 0)), cyl(12.5, 1.1, (front - 5.05, 0, 0)), cyl(8.5, 4.2, (front - 4.1, 0, 0))]
+    for u in (-7.5, 22.5):
+        for z in (-8, 8):
+            cuts += [cyl(1.1, 10, (front - 9.1, u, z)), cyl(1.9, 7.1, (front - 9.1, u, z))]
+    for u in (-18.5, 18.5):
+        cuts.append(cyl(1.7, 8, (front - 10, u, 0)))
+        cuts.append(nut_prism_x(front - 7.7, u, 0, 5.9, 2.8))
+        cuts.append(box(front - 7.7, u if u > 0 else u - 8, -2.95, 2.8, 8, 5.9))
+    for zz in (-8, 8):
+        a = V(front - 4.1, 0, 0)
+        b = V(front - 4.1, -7.5, zz)
+        dy, dz = (-7.5, zz)
+        L = math.hypot(dy, dz)
+        ny, nz = (-dz / L * 1.9, dy / L * 1.9)
+        pts = [a + V(0, ny, nz), b + V(0, ny, nz), b - V(0, ny, nz), a - V(0, ny, nz)]
+        cuts.append(Part.Face(Part.makePolygon(pts + [pts[0]])).extrude(V(2.1, 0, 0)))
+    raw_cage = casing.copy()
+    casing = cut(casing, cuts)
+    retainer = tangent_retainer_outline(R, 4.5, 18.5, front - 13, 4)
+    retainer = cut(retainer, [cyl(12.5, 6, (front - 14, 0, 0))] + [cyl(1.7, 6, (front - 14, u, 0)) for u in (-18.5, 18.5)] + [cyl(2.9, 2.01, (front - 13.01, u, 0)) for u in (-18.5, 18.5)])
+    front_edges = []
+    for edge in retainer.Edges:
+        bb = edge.BoundBox
+        if abs(bb.XMin - (front - 13)) > 1e-06 or abs(bb.XMax - (front - 13)) > 1e-06:
+            continue
+        curve = edge.Curve
+        if isinstance(curve, Part.Line) or (isinstance(curve, Part.Circle) and (abs(curve.Radius - R) < 1e-06 or abs(curve.Radius - 4.5) < 1e-06)):
+            front_edges.append(edge)
+    if front_edges:
+        retainer = retainer.makeChamfer(0.4, front_edges)
+    bearing = cut(cyl(13.5, 4, (front - 9, 0, 0)), [cyl(10, 6, (front - 10, 0, 0))])
+    shim = cut(cyl(11, 5, (front - 14, 0, 0)), [cyl(10.05, 7, (front - 15, 0, 0))])
+    rotor = fuse([cyl(11, 3, (front - 17, 0, 0)), cyl(9.925, 10, (front - 14, 0, 0)), cyl(7.9, 1, (front - 4, 0, 0))])
+    holes = [cyl(2.5, 16, (front - 18, 0, 0))]
+    for i in range(4):
+        angle = i * math.pi / 2
+        u, z = (6 * math.cos(angle), 6 * math.sin(angle))
+        holes += [cyl(1.05, 16, (front - 18, u, z)), cyl(2.3, 12, (front - 18, u, z))]
+    rotor = cut(rotor, holes)
+    return {'motor': fuse([body, horn]), 'cage': casing, 'retainer': retainer, 'bearing': bearing, 'shim': shim, 'rotor': rotor, 'cuts': cuts, 'raw_cage': raw_cage, 'rotor_cuts': holes}
+
+def build(c):
+    if c.get('version') != '0.1.0':
+        raise ValueError('Unsupported geometry version')
+    if c['transmission']['type'] != 'direct_drive' or c['transmission']['ratio'] != 1 or c['transmission']['motor_count'] != 4 or c['transmission']['motors_per_axis'] != 2:
+        raise ValueError('This model requires four motors and literal1:1 horn coupling')
+    if c['kinematics']['mounting_face_center_offset_mm'] != [0, 0, 0]:
+        raise ValueError('This fixed-face layout requires its mounting datum at O')
+    k, p = (c['kinematics'], c['packaging'])
+    O = k['center_mm']
+    h = O[2]
+    if p['motor_clock_deg'] != 90:
+        raise ValueError('This first cassette layout is explicitly clocked90deg; revise source for another clocking')
+    A = module(p['outer_motor_front_mm'], c)
+    B = module(p['inner_motor_front_mm'], c)
+    base = round_xy(-p['outer_motor_front_mm'] - 12, p['outer_motor_front_mm'] + 12, -44, 44, -h, p['base_t_mm'], 28)
+    ai = c['arm_interface']
+    bc = [cyl(10, p['base_t_mm'] + 2, (0, 0, -h - 1), (0, 0, 1))]
+    for i in range(ai['bolt_count']):
+        aa = math.radians(ai['bolt_phase_deg'] + 360 * i / ai['bolt_count'])
+        x, y = (ai['bolt_pcd_mm'] / 2 * math.cos(aa), ai['bolt_pcd_mm'] / 2 * math.sin(aa))
+        bc.append(cyl(ai['hole_d_mm'] / 2, p['base_t_mm'] + 2, (x, y, -h - 1), (0, 0, 1)))
+    F = p['outer_motor_front_mm']
+    F2 = p['inner_motor_front_mm']
+    for side in (-1, 1):
+        for u in (-18.5, 18.5):
+            bc.append(cyl(1.7, 7, (side * (F + 4), u, -h - 1), (0, 0, 1)))
+    base = cut(base, bc)
+    footz = -h + p['base_t_mm']
+    gz = footz + 4
+    gx = F - 2.2
+    gp = [V(gx, -14.5, gz), V(F + 8, -14.5, gz), V(gx, -14.5, -17)]
+    gusset = Part.Face(Part.makePolygon(gp + [gp[0]])).extrude(V(0, 29, 0))
+    bridge = box(F - 8, -18.5, -20, 6, 37, 4)
+    support = fuse([A['raw_cage'], foot_mounts(F, footz), gusset, bridge] + [support_rib(F, u, footz + 4) for u in (-18.5, 18.5)])
+    support = cut(support, A['cuts'])
+    ring = round_xy(-p['frame_half_x_mm'], p['frame_half_x_mm'], -p['frame_half_y_mm'], p['frame_half_y_mm'], p['frame_bottom_relative_mm'], 6, 8)
+    ring = ring.cut(round_xy(-p['frame_open_half_x_mm'], p['frame_open_half_x_mm'], -p['frame_open_half_y_mm'], p['frame_open_half_y_mm'], p['frame_bottom_relative_mm'] - 1, 8, 5))
+    mount_holes = []
+    for side in (-1, 1):
+        for u in (-18.5, 18.5):
+            mount_holes.append(cyl(1.7, 8, (u, side * (F2 + 4), p['frame_bottom_relative_mm'] - 1), (0, 0, 1)))
+    ring = cut(ring, mount_holes)
+    web = round_yz(-8, 8, -23, -6, F - 17, 3, 3)
+    outer = fuse([ring, A['rotor'], at(A['rotor'], 180), web, at(web, 180)])
+    outer = cut(outer, [at(tool, aa) for aa in (0, 180) for tool in A['rotor_cuts']])
+    left = outer.common(box(-200, -200, -200, 200, 400, 400))
+    right = outer.common(box(0, -200, -200, 200, 400, 400))
+    zb = p['frame_bottom_relative_mm']
+    for y0 in (-p['frame_half_y_mm'], p['frame_open_half_y_mm']):
+        width = p['frame_half_y_mm'] - p['frame_open_half_y_mm']
+        left = cut(left, [box(-12, y0, zb + 3, 12, width, 3)])
+        left = fuse([left, box(0, y0, zb, 12, width, 3)])
+        right = cut(right, [box(0, y0, zb, 12, width, 3)])
+        right = fuse([right, box(-12, y0, zb + 3, 12, width, 3)])
+    joint_cuts = [cyl(1.7, 8, (xx, yy, zb - 1), (0, 0, 1)) for xx in (-6, 6) for yy in (-c['fasteners']['gimbal_lap_bolt_y_mm'], c['fasteners']['gimbal_lap_bolt_y_mm'])]
+    left = cut(left, joint_cuts)
+    right = cut(right, joint_cuts)
+    cagefoot = fuse([B['raw_cage'], foot_mounts(F2, -17)] + [support_rib(F2, u, -13) for u in (-18.5, 18.5)])
+    cagefoot = cut(cagefoot, B['cuts'])
+    shelf = round_xy(F2 - 26, F2 - 16.8, -12, 12, -8, 4, 3)
+    innerhub = fuse([B['rotor'], shelf])
+    innerhub = cut(innerhub, B['rotor_cuts'])
+    innerhub = cut(innerhub, [cyl(2.3, 24, (F2 - 30, u, z)) for u, z in ((6, 0), (0, 6), (-6, 0), (0, -6))])
+    for u in (-8, 8):
+        innerhub = cut(innerhub, [cyl(1.7, 6, (15, u, -9), (0, 0, 1))])
+    plate = disk_with_flats(-4, 4, c)
+    for xx in (-8, 8):
+        for yy in (-15, 15):
+            plate = cut(plate, [cyl(1.7, 6, (xx, yy, -5), (0, 0, 1)), Part.makeCone(3.2, 1.7, 1.5, V(xx, yy, 0), V(0, 0, -1))])
+    for xx, yy in c['output_interface']['mount_holes_mm']:
+        plate = cut(plate, [cyl(1.7, 6, (xx, yy, -5), (0, 0, 1))])
+    parts = []
+
+    def add(name, s, role, group, printable=False):
+        parts.append({'name': name, 'shape': at(s, offset=O), 'role': role, 'group': group, 'printable_layout': printable})
+    add('Arm_Base_Layout', base, 'structure', 'fixed', True)
+    for a, side in ((0, 'R'), (180, 'L')):
+        add('Outer_' + side + '_Ground_Support', at(support, a), 'structure', 'fixed', True)
+        for key, role in [('retainer', 'structure'), ('bearing', 'bearing'), ('motor', 'motor'), ('shim', 'moving')]:
+            add('Outer_' + side + '_' + key, at(A[key], a), role, 'outer' if key == 'shim' else 'fixed', key in ('retainer', 'shim'))
+    add('Outer_Gimbal_Left', left, 'moving', 'outer', True)
+    add('Outer_Gimbal_Right', right, 'moving', 'outer', True)
+    for a, side in ((90, 'R'), (270, 'L')):
+        add('Inner_' + side + '_Removable_Cassette', at(cagefoot, a), 'moving', 'outer', True)
+        add('Inner_' + side + '_Removable_Hub', at(innerhub, a), 'output', 'inner', True)
+        for key, role in [('retainer', 'structure'), ('bearing', 'bearing'), ('motor', 'motor'), ('shim', 'moving')]:
+            add('Inner_' + side + '_' + key, at(B[key], a), role, 'inner' if key == 'shim' else 'outer', key in ('retainer', 'shim'))
+    add('Output_Plate', plate, 'output', 'inner', True)
+    return parts
+
+def _cyl(radius, length, origin, direction=(1, 0, 0)):
+    return Part.makeCylinder(radius, length, V(*origin), V(*direction))
+
+def _poly_x(points_yz, x, depth):
+    points = [V(x, y, z) for y, z in points_yz]
+    return Part.Face(Part.makePolygon(points + [points[0]])).extrude(V(depth, 0, 0))
+
+def _hex_x(x, y, z, across_flats, depth):
+    radius = across_flats / math.sqrt(3)
+    return _poly_x([(y + radius * math.cos(i * math.pi / 3), z + radius * math.sin(i * math.pi / 3)) for i in range(6)], x, depth)
+
+def _hex_z(z, x, y, across_flats, depth):
+    radius = across_flats / math.sqrt(3)
+    points = [V(x + radius * math.sin(i * math.pi / 3), y + radius * math.cos(i * math.pi / 3), z) for i in range(6)]
+    return Part.Face(Part.makePolygon(points + [points[0]])).extrude(V(0, 0, depth))
+
+def _place(shape, angle, center):
+    result = shape.copy()
+    result.rotate(V(0, 0, 0), V(0, 0, 1), angle)
+    result.translate(V(*center))
+    return result
+
+def fastener_envelopes(c):
+    result = []
+    center = c['kinematics']['center_mm']
+    packaging = c['packaging']
+
+    def bolt_x(seat, u, z, length):
+        return _cyl(2.75, 3, (seat - 3, u, z)).fuse(_cyl(1.5, length, (seat, u, z))).removeSplitter()
+
+    def bolt_z(seat, x, y, length):
+        return _cyl(2.75, 3, (x, y, seat - 3), (0, 0, 1)).fuse(_cyl(1.5, length, (x, y, seat), (0, 0, 1))).removeSplitter()
+
+    def nut_x(x, u, z):
+        return _hex_x(x, u, z, 5.5, 2.4).cut(_cyl(1.5, 2.6, (x - 0.1, u, z))).removeSplitter()
+
+    def nut_z(z, x, y):
+        return _hex_z(z, x, y, 5.5, 2.4).cut(_cyl(1.5, 2.6, (x, y, z - 0.1), (0, 0, 1))).removeSplitter()
+
+    def add(name, shape, group, kind, angle=None, nominal_length_mm=None):
+        if angle is not None:
+            shape = _place(shape, angle, center)
+        result.append({'name': name, 'shape': shape, 'group': group, 'kind': kind, 'nominal_length_mm': nominal_length_mm, 'status': 'NOMINAL_HARDWARE_ENVELOPE_NO_THREADS'})
+    for prefix, side, angle, front in (('Outer', 'R', 0, packaging['outer_motor_front_mm']), ('Outer', 'L', 180, packaging['outer_motor_front_mm']), ('Inner', 'R', 90, packaging['inner_motor_front_mm']), ('Inner', 'L', 270, packaging['inner_motor_front_mm'])):
+        group = 'fixed' if prefix == 'Outer' else 'outer'
+        foot_z = -center[2] + packaging['base_t_mm'] if prefix == 'Outer' else -17
+        mating_z = -center[2] if prefix == 'Outer' else packaging['frame_bottom_relative_mm']
+        for index, u in enumerate((-18.5, 18.5), 1):
+            tag = f'Hardware_{prefix}_{side}_Retainer_{index}'
+            add(tag + '_M3x8_Bolt', bolt_x(front - 11, u, 0, 8), group, 'bolt', angle, 8)
+            add(tag + '_M3_Nut', nut_x(front - 7.5, u, 0), group, 'nut', angle)
+            tag = f'Hardware_{prefix}_{side}_Foot_{index}'
+            add(tag + '_M3x12_Bolt', bolt_z(mating_z, front + 4, u, 12), group, 'bolt', angle, 12)
+            add(tag + '_M3_Nut', nut_z(foot_z + 2.9, front + 4, u), group, 'nut', angle)
+    for side, sign in (('R', 1), ('L', -1)):
+        for index, x in enumerate((-8, 8), 1):
+            y = sign * 15
+            tag = f'Hardware_Inner_{side}_Plate_{index}'
+            bolt = _cyl(1.5, 10.3, (x, y, -12), (0, 0, 1)).fuse(Part.makeCone(1.5, 3, 1.5, V(x, y, -1.7), V(0, 0, 1))).fuse(_cyl(3, 0.2, (x, y, -0.2), (0, 0, 1))).removeSplitter()
+            add(tag + '_M3x12_Countersunk_Bolt', bolt, 'inner', 'bolt', 0, 12)
+            add(tag + '_M3_Nut', nut_z(-10.4, x, y), 'inner', 'nut', 0)
+    lap_bottom = packaging['frame_bottom_relative_mm']
+    lap_y = c.get('fasteners', {}).get('gimbal_lap_bolt_y_mm', 42)
+    for i, x in enumerate((-6, 6), 1):
+        for j, y in enumerate((-lap_y, lap_y), 1):
+            tag = f'Hardware_Gimbal_Lap_{i}_{j}'
+            add(tag + '_M3x10_Bolt', bolt_z(lap_bottom, x, y, 10), 'outer', 'bolt', 0, 10)
+            add(tag + '_M3_Nut', nut_z(lap_bottom + 6, x, y), 'outer', 'nut', 0)
+    interface = c['arm_interface']
+    if abs(packaging['base_t_mm'] - 5) > 1e-09:
+        raise ValueError('Arm fastener envelope assumes5mm base; reselect screw length for a new base thickness')
+    for index in range(interface['bolt_count']):
+        angle = math.radians(interface['bolt_phase_deg'] + 360 * index / interface['bolt_count'])
+        x = interface['bolt_pcd_mm'] / 2 * math.cos(angle)
+        y = interface['bolt_pcd_mm'] / 2 * math.sin(angle)
+        bolt = _cyl(1.5, 10, (x, y, -5), (0, 0, 1)).fuse(_cyl(2.75, 3, (x, y, 5), (0, 0, 1))).removeSplitter()
+        add(f'Hardware_Arm_Interface_{index + 1}_M3x10_Bolt', bolt, 'fixed', 'arm_bolt', None, 10)
+    return result
+
+# Stable filenames shared by the CAD tree, STL folder and assembly guide.
+PART_FILES = {
+    'Arm_Base_Layout': '01_arm_base',
+    'Outer_L_Ground_Support': '02_outer_support_left',
+    'Outer_R_Ground_Support': '03_outer_support_right',
+    'Outer_L_retainer': '04_outer_retainer_left',
+    'Outer_R_retainer': '05_outer_retainer_right',
+    'Outer_L_shim': '06_outer_spacer_left',
+    'Outer_R_shim': '07_outer_spacer_right',
+    'Outer_Gimbal_Left': '08_gimbal_left',
+    'Outer_Gimbal_Right': '09_gimbal_right',
+    'Inner_L_Removable_Cassette': '10_inner_cassette_left',
+    'Inner_R_Removable_Cassette': '11_inner_cassette_right',
+    'Inner_L_Removable_Hub': '12_inner_hub_left',
+    'Inner_R_Removable_Hub': '13_inner_hub_right',
+    'Inner_L_retainer': '14_inner_retainer_left',
+    'Inner_R_retainer': '15_inner_retainer_right',
+    'Inner_L_shim': '16_inner_spacer_left',
+    'Inner_R_shim': '17_inner_spacer_right',
+    'Output_Plate': '18_output_plate',
+}
+COLORS = {'structure': (0.79, 0.82, 0.81), 'moving': (0.22, 0.34, 0.40),
+          'output': (0.72, 0.79, 0.81), 'motor': (0.15, 0.17, 0.19),
+          'bearing': (0.65, 0.68, 0.72), 'hardware': (0.48, 0.51, 0.54)}
+
+
+def print_orientation(shape, name):
+    """Starting orientations only; supports and print fits need slicer review."""
+    result = shape.copy()
+    description = 'Base or frame face down; inspect supports for horizontal features'
+    rotations = {
+        'Outer_R_retainer': (V(0, 1, 0), 90),
+        'Outer_L_retainer': (V(0, 1, 0), -90),
+        'Inner_R_retainer': (V(1, 0, 0), -90),
+        'Inner_L_retainer': (V(1, 0, 0), 90),
+    }
+    if name in rotations:
+        axis, angle = rotations[name]
+        result.rotate(V(), axis, angle)
+        description = 'Bearing-contact face down; head recesses up'
+    elif name.endswith('_shim'):
+        axis = V(0, 1, 0) if name.startswith('Outer_') else V(1, 0, 0)
+        result.rotate(V(), axis, -90 if name.startswith('Outer_') else 90)
+        description = 'Ring face down'
+    elif name.endswith('_Removable_Hub'):
+        result.rotate(V(), V(1, 0, 0), 90 if '_R_' in name else -90)
+        description = 'Journal upright; support the flange and projecting shelf as required'
+    elif name == 'Output_Plate':
+        description = 'Flat underside down; countersinks up'
+    b = result.BoundBox
+    result.translate(V(-(b.XMin+b.XMax)/2, -(b.YMin+b.YMax)/2, -b.ZMin))
+    return result, description
+
+
+def rebuild():
+    dimensions = json.loads((SOURCE_DIR / 'dimensions.json').read_text())
+    parts = build(dimensions)
+    hardware = fastener_envelopes(dimensions)
+    if len(parts) != 26 or sum(p['printable_layout'] for p in parts) != 18 or len(hardware) != 56:
+        raise ValueError('Unexpected part inventory; update the CAD and BOM together')
+    for folder in (ROOT / 'cad/parts', ROOT / 'stl'):
+        folder.mkdir(parents=True, exist_ok=True)
+    name = 'Unitree_Z1_Wrist'
+    if name in App.listDocuments():
+        App.closeDocument(name)
+    doc = App.newDocument(name)
+    doc.Label = 'Unitree Z1 wrist'
+    doc.CreatedBy = 'Jdowdy05'
+    doc.LastModifiedBy = 'Jdowdy05'
+    doc.License = 'MIT'
+    doc.LicenseURL = 'https://opensource.org/license/mit'
+    groups = {key: doc.addObject('App::DocumentObjectGroup', key) for key in ('Printed_Parts', 'Reference_Components', 'Reference_Fasteners')}
+    groups['Printed_Parts'].Label = 'Printed parts (18)'
+    groups['Reference_Components'].Label = 'Reference motors and bearings (8)'
+    groups['Reference_Fasteners'].Label = 'Reference fasteners (56)'
+    objects, rows = [], []
+    for item in parts:
+        shape = item['shape']
+        if not shape.isValid() or len(shape.Solids) != 1:
+            raise ValueError('Invalid solid: ' + item['name'])
+        obj = doc.addObject('PartDesign::Feature', item['name'])
+        obj.Shape = shape
+        obj.Label = PART_FILES.get(item['name'], item['name'])
+        obj.addProperty('App::PropertyString', 'MotionGroup').MotionGroup = item['group']
+        obj.addProperty('App::PropertyBool', 'PrintedPart').PrintedPart = item['printable_layout']
+        if App.GuiUp:
+            obj.ViewObject.ShapeColor = COLORS[item['role']]
+        objects.append(obj)
+        groups['Printed_Parts' if item['printable_layout'] else 'Reference_Components'].addObject(obj)
+        b = shape.BoundBox
+        row = {'name': obj.Label, 'motion_group': item['group'], 'printed': item['printable_layout'],
+               'valid_single_solid': True, 'volume_mm3': shape.Volume,
+               'bounds_mm': [b.XMin, b.YMin, b.ZMin, b.XMax, b.YMax, b.ZMax]}
+        if item['printable_layout']:
+            stem = PART_FILES[item['name']]
+            shape.exportStep(str(ROOT / 'cad/parts' / (stem + '.step')))
+            oriented, orientation = print_orientation(shape, item['name'])
+            mesh = MeshPart.meshFromShape(Shape=oriented, LinearDeflection=0.1,
+                                         AngularDeflection=0.2, Relative=False)
+            if not mesh.isSolid() or abs(oriented.Volume-shape.Volume) > 1e-4:
+                raise ValueError('Invalid mesh or print orientation: ' + stem)
+            mesh.write(str(ROOT / 'stl' / (stem + '.stl')))
+            row.update(stl_closed=True, print_orientation=orientation,
+                       print_bounds_mm=[oriented.BoundBox.XLength, oriented.BoundBox.YLength, oriented.BoundBox.ZLength])
+        rows.append(row)
+    for item in hardware:
+        obj = doc.addObject('PartDesign::Feature', item['name'])
+        obj.Shape = item['shape']
+        obj.Label = item['name'].replace('Hardware_', '')
+        obj.addProperty('App::PropertyString', 'MotionGroup').MotionGroup = item['group']
+        obj.addProperty('App::PropertyBool', 'PrintedPart').PrintedPart = False
+        if App.GuiUp:
+            obj.ViewObject.ShapeColor = COLORS['hardware']
+        objects.append(obj)
+        groups['Reference_Fasteners'].addObject(obj)
+    doc.recompute()
+    doc.saveAs(str(ROOT / 'cad/wrist.FCStd'))
+    Part.export(objects, str(ROOT / 'cad/wrist.step'))
+    report = {'version': dimensions['version'], 'units': 'mm',
+              'part_count': len(parts), 'printed_part_count': 18, 'nominal_hardware_count': len(hardware),
+              'pivot_mm': dimensions['kinematics']['center_mm'],
+              'native_solids_valid': True, 'printed_meshes_closed': True,
+              'physical_qualification': False, 'parts': rows,
+              'source_sha256': {str(path.relative_to(ROOT)): hashlib.sha256(path.read_bytes()).hexdigest() for path in (SOURCE_DIR / 'Rebuild_Wrist.FCMacro', SOURCE_DIR / 'dimensions.json')},
+              'notes': ['Motor, bearing and fastener shapes are nominal reference envelopes.',
+                        'STL orientation is a starting point; inspect supports and calibrate fits.',
+                        'No payload, continuous-duty or material strength rating is established.']}
+    (ROOT / 'cad/geometry.json').write_text(json.dumps(report, indent=2) + '\n')
+    if App.GuiUp:
+        import FreeCADGui as Gui
+        Gui.activeDocument().activeView().viewAxonometric()
+        Gui.activeDocument().activeView().fitAll()
+    print('Built wrist: 18 printed parts, 4 motors, 4 bearings and 56 hardware references.')
+    return parts, hardware
+
+
+if __name__ == '__main__':
+    rebuild()

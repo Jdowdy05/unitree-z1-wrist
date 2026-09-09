@@ -1,0 +1,28 @@
+item,category,quantity,description,part_or_print_file,manufacturer_or_source,specification,assembly_notes,reference_url
+01,Printed,1,Arm mounting base,stl/01_arm_base.stl,Project CAD,PETG prototype assumption,5 mm nominal base thickness; verify actual flange,
+02,Printed,1,Negative-X ground support,stl/02_outer_support_left.stl,Project CAD,PETG prototype assumption,Preload two foot nuts and two retainer nuts before motor installation,
+03,Printed,1,Positive-X ground support,stl/03_outer_support_right.stl,Project CAD,PETG prototype assumption,Preload two foot nuts and two retainer nuts before motor installation,
+04,Printed,1,Negative-X bearing retainer,stl/04_outer_retainer_left.stl,Project CAD,PETG prototype assumption,Two M3x8 screws; captures outer bearing race,
+05,Printed,1,Positive-X bearing retainer,stl/05_outer_retainer_right.stl,Project CAD,PETG prototype assumption,Two M3x8 screws; captures outer bearing race,
+06,Printed,1,Negative-X journal shim ring,stl/06_outer_spacer_left.stl,Project CAD,PETG prototype assumption,Nominal ID20.1 x OD22 x axial5 mm; fit without binding,
+07,Printed,1,Positive-X journal shim ring,stl/07_outer_spacer_right.stl,Project CAD,PETG prototype assumption,Nominal ID20.1 x OD22 x axial5 mm; fit without binding,
+08,Printed,1,Left outer gimbal half,stl/08_gimbal_left.stl,Project CAD,PETG prototype assumption,Driven hub is integrated; assemble bearing stack before horn fastening,
+09,Printed,1,Right outer gimbal half,stl/09_gimbal_right.stl,Project CAD,PETG prototype assumption,Driven hub is integrated; assemble bearing stack before horn fastening,
+10,Printed,1,Negative-Y inner motor cassette,stl/10_inner_cassette_left.stl,Project CAD,PETG prototype assumption,Preload two foot nuts and two retainer nuts before motor installation,
+11,Printed,1,Positive-Y inner motor cassette,stl/11_inner_cassette_right.stl,Project CAD,PETG prototype assumption,Preload two foot nuts and two retainer nuts before motor installation,
+12,Printed,1,Negative-Y driven hub and output shelf,stl/12_inner_hub_left.stl,Project CAD,PETG prototype assumption,Retain full bearing shoulder,
+13,Printed,1,Positive-Y driven hub and output shelf,stl/13_inner_hub_right.stl,Project CAD,PETG prototype assumption,Retain full bearing shoulder,
+14,Printed,1,Negative-Y bearing retainer,stl/14_inner_retainer_left.stl,Project CAD,PETG prototype assumption,Two M3x8 screws; captures outer bearing race,
+15,Printed,1,Positive-Y bearing retainer,stl/15_inner_retainer_right.stl,Project CAD,PETG prototype assumption,Two M3x8 screws; captures outer bearing race,
+16,Printed,1,Negative-Y journal shim ring,stl/16_inner_spacer_left.stl,Project CAD,PETG prototype assumption,Nominal ID20.1 x OD22 x axial5 mm; fit without binding,
+17,Printed,1,Positive-Y journal shim ring,stl/17_inner_spacer_right.stl,Project CAD,PETG prototype assumption,Nominal ID20.1 x OD22 x axial5 mm; fit without binding,
+18,Printed,1,Recessed general-purpose output plate,stl/18_output_plate.stl,Project CAD,PETG prototype assumption,4 mm thick; 44 x38 mm outline; generic 28 x14 mm four-hole pattern,
+B01,Purchased,4,Thin-section ball bearing,6704,Bearing manufacturer matching the listed dimensions,20 mm bore x27 mm OD x4 mm width,Select and fit-check actual bearing variant; reference dimensions from JTEKT,https://koyo.jtekt.co.jp/en/products/detail/?pno=6704
+F01,Purchased,8,Socket-head cap screw,M3x8,Commercial hardware supplier,5.5 mm nominal head diameter; 3 mm head height,Two per bearing retainer; length excludes head,
+F02,Purchased,12,Socket-head cap screw,M3x10,Commercial hardware supplier,5.5 mm nominal head diameter; 3 mm head height,Four gimbal-lap screws plus eight arm screws; confirm arm thread depth,
+F03,Purchased,8,Socket-head cap screw,M3x12,Commercial hardware supplier,5.5 mm nominal head diameter; 3 mm head height,Four ground-support feet plus four inner-cassette feet,
+F04,Purchased,4,Countersunk socket screw,"M3x12 DIN7991 countersunk, 90 degree",Commercial hardware supplier,6 mm nominal head diameter; 1.7 mm nominal head height,Output plate to hub shelves; length includes head; verify purchased head dimensions,https://www.accu.co.uk/countersunk-socket-head-screws/472018-SSK-M3-12-10-9
+F05,Purchased,24,Plain hex nut,M3,Commercial hardware supplier,5.5 mm across flats x2.4 mm thick,Eight retainer nuts; eight foot nuts; four lap nuts; four output-plate nuts,
+F06,Purchased,16,Horn tapping screw,PHS M2x6 TAP,ROBOTIS,For 3 mm printed horn-attachment stack,Four per horn; retain factory central screws; do not substitute M2 machine thread,https://emanual.robotis.com/assets/images/dxl/x/x330/x330_horn_screw.png
+F07,Purchased,16,Motor-body tapping screw,PHS M2x8 TAP,ROBOTIS,For designated front frame/body mounting passages,Four per motor; verify actual tapping engagement; do not substitute M2 machine thread,https://en.robotis.com/shop_en/item.php?it_id=902-0163-000
+M01,Purchased,4,DYNAMIXEL servo,XL330-M288-T,ROBOTIS,20 x34 x23 mm body; factory horn retained,Includes retained factory horn and central retaining screw; 3.7-6.0 V supply,https://emanual.robotis.com/docs/en/dxl/x/xl330-m288/

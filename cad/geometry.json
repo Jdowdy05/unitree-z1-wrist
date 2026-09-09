@@ -1,0 +1,542 @@
+{
+  "version": "0.1.0",
+  "units": "mm",
+  "part_count": 26,
+  "printed_part_count": 18,
+  "nominal_hardware_count": 56,
+  "pivot_mm": [
+    0,
+    0,
+    50.5
+  ],
+  "native_solids_valid": true,
+  "printed_meshes_closed": true,
+  "physical_qualification": false,
+  "parts": [
+    {
+      "name": "01_arm_base",
+      "motion_group": "fixed",
+      "printed": true,
+      "valid_single_solid": true,
+      "volume_mm3": 41159.4947091446,
+      "bounds_mm": [
+        -53.0,
+        -44.0,
+        0.0,
+        53.0,
+        44.0,
+        5.000000000000007
+      ],
+      "stl_closed": true,
+      "print_orientation": "Base or frame face down; inspect supports for horizontal features",
+      "print_bounds_mm": [
+        106.0,
+        88.0,
+        5.000000000000007
+      ]
+    },
+    {
+      "name": "03_outer_support_right",
+      "motion_group": "fixed",
+      "printed": true,
+      "valid_single_solid": true,
+      "volume_mm3": 15182.388033699342,
+      "bounds_mm": [
+        32.0,
+        -24.5,
+        5.0,
+        51.0,
+        27.5,
+        67.0
+      ],
+      "stl_closed": true,
+      "print_orientation": "Base or frame face down; inspect supports for horizontal features",
+      "print_bounds_mm": [
+        19.0,
+        52.0,
+        62.0
+      ]
+    },
+    {
+      "name": "05_outer_retainer_right",
+      "motion_group": "fixed",
+      "printed": true,
+      "valid_single_solid": true,
+      "volume_mm3": 1927.9322149151799,
+      "bounds_mm": [
+        27.999999999999993,
+        -23.0,
+        34.0,
+        32.0,
+        23.0,
+        67.0
+      ],
+      "stl_closed": true,
+      "print_orientation": "Bearing-contact face down; head recesses up",
+      "print_bounds_mm": [
+        32.963474692579105,
+        46.0,
+        4.000000000000011
+      ]
+    },
+    {
+      "name": "Outer_R_bearing",
+      "motion_group": "fixed",
+      "printed": false,
+      "valid_single_solid": true,
+      "volume_mm3": 1033.5839830310424,
+      "bounds_mm": [
+        32.0,
+        -13.5,
+        37.0,
+        36.0,
+        13.5,
+        64.0
+      ]
+    },
+    {
+      "name": "Outer_R_motor",
+      "motion_group": "fixed",
+      "printed": false,
+      "valid_single_solid": true,
+      "volume_mm3": 16243.18578948924,
+      "bounds_mm": [
+        38.0,
+        -9.5,
+        40.5,
+        64.0,
+        24.5,
+        60.5
+      ]
+    },
+    {
+      "name": "07_outer_spacer_right",
+      "motion_group": "outer",
+      "printed": true,
+      "valid_single_solid": true,
+      "volume_mm3": 314.1199954508095,
+      "bounds_mm": [
+        27.0,
+        -11.0,
+        39.5,
+        32.0,
+        11.0,
+        61.5
+      ],
+      "stl_closed": true,
+      "print_orientation": "Ring face down",
+      "print_bounds_mm": [
+        21.98632613340815,
+        21.993162004017957,
+        5.0
+      ]
+    },
+    {
+      "name": "02_outer_support_left",
+      "motion_group": "fixed",
+      "printed": true,
+      "valid_single_solid": true,
+      "volume_mm3": 15182.38803369934,
+      "bounds_mm": [
+        -51.0,
+        -27.499999999999996,
+        5.0,
+        -31.999999999999996,
+        24.500000000000007,
+        67.0
+      ],
+      "stl_closed": true,
+      "print_orientation": "Base or frame face down; inspect supports for horizontal features",
+      "print_bounds_mm": [
+        19.000000000000004,
+        52.0,
+        62.0
+      ]
+    },
+    {
+      "name": "04_outer_retainer_left",
+      "motion_group": "fixed",
+      "printed": true,
+      "valid_single_solid": true,
+      "volume_mm3": 1927.93221491518,
+      "bounds_mm": [
+        -32.0,
+        -22.999999999999996,
+        34.0,
+        -27.99999999999999,
+        23.000000000000004,
+        67.0
+      ],
+      "stl_closed": true,
+      "print_orientation": "Bearing-contact face down; head recesses up",
+      "print_bounds_mm": [
+        32.963474692579105,
+        46.0,
+        4.000000000000011
+      ]
+    },
+    {
+      "name": "Outer_L_bearing",
+      "motion_group": "fixed",
+      "printed": false,
+      "valid_single_solid": true,
+      "volume_mm3": 1033.583983031042,
+      "bounds_mm": [
+        -36.0,
+        -13.499999999999996,
+        37.0,
+        -32.0,
+        13.500000000000004,
+        64.0
+      ]
+    },
+    {
+      "name": "Outer_L_motor",
+      "motion_group": "fixed",
+      "printed": false,
+      "valid_single_solid": true,
+      "volume_mm3": 16243.18578948924,
+      "bounds_mm": [
+        -64.0,
+        -24.499999999999996,
+        40.5,
+        -38.0,
+        9.500000000000009,
+        60.5
+      ]
+    },
+    {
+      "name": "06_outer_spacer_left",
+      "motion_group": "outer",
+      "printed": true,
+      "valid_single_solid": true,
+      "volume_mm3": 314.11999545080926,
+      "bounds_mm": [
+        -32.0,
+        -10.999999999999996,
+        39.5,
+        -27.0,
+        11.000000000000004,
+        61.5
+      ],
+      "stl_closed": true,
+      "print_orientation": "Ring face down",
+      "print_bounds_mm": [
+        21.98632613340814,
+        21.993162004017957,
+        5.0000000000000036
+      ]
+    },
+    {
+      "name": "08_gimbal_left",
+      "motion_group": "outer",
+      "printed": true,
+      "valid_single_solid": true,
+      "volume_mm3": 10594.513167958794,
+      "bounds_mm": [
+        -38.0,
+        -47.0,
+        27.499999999999993,
+        12.0,
+        47.0,
+        61.5
+      ],
+      "stl_closed": true,
+      "print_orientation": "Base or frame face down; inspect supports for horizontal features",
+      "print_bounds_mm": [
+        50.0,
+        94.0,
+        34.00000000000001
+      ]
+    },
+    {
+      "name": "09_gimbal_right",
+      "motion_group": "outer",
+      "printed": true,
+      "valid_single_solid": true,
+      "volume_mm3": 10594.513167958768,
+      "bounds_mm": [
+        -12.0,
+        -47.0,
+        27.499999999999996,
+        38.0,
+        47.0,
+        61.5
+      ],
+      "stl_closed": true,
+      "print_orientation": "Base or frame face down; inspect supports for horizontal features",
+      "print_bounds_mm": [
+        50.0,
+        94.0,
+        34.0
+      ]
+    },
+    {
+      "name": "11_inner_cassette_right",
+      "motion_group": "outer",
+      "printed": true,
+      "valid_single_solid": true,
+      "volume_mm3": 8219.769091000038,
+      "bounds_mm": [
+        -27.499999999999996,
+        27.999999999999996,
+        33.5,
+        24.500000000000004,
+        47.0,
+        67.0
+      ],
+      "stl_closed": true,
+      "print_orientation": "Base or frame face down; inspect supports for horizontal features",
+      "print_bounds_mm": [
+        52.0,
+        19.000000000000004,
+        33.5
+      ]
+    },
+    {
+      "name": "13_inner_hub_right",
+      "motion_group": "inner",
+      "printed": true,
+      "valid_single_solid": true,
+      "volume_mm3": 4007.3708152507916,
+      "bounds_mm": [
+        -11.999999999999998,
+        10.999999999999998,
+        39.5,
+        12.000000000000002,
+        34.0,
+        61.5
+      ],
+      "stl_closed": true,
+      "print_orientation": "Journal upright; support the flange and projecting shelf as required",
+      "print_bounds_mm": [
+        24.0,
+        22.0,
+        23.0
+      ]
+    },
+    {
+      "name": "15_inner_retainer_right",
+      "motion_group": "outer",
+      "printed": true,
+      "valid_single_solid": true,
+      "volume_mm3": 1927.9322149151787,
+      "bounds_mm": [
+        -22.999999999999996,
+        23.999999999999993,
+        34.0,
+        23.000000000000004,
+        28.000000000000004,
+        67.0
+      ],
+      "stl_closed": true,
+      "print_orientation": "Bearing-contact face down; head recesses up",
+      "print_bounds_mm": [
+        46.0,
+        32.963474692579105,
+        4.000000000000018
+      ]
+    },
+    {
+      "name": "Inner_R_bearing",
+      "motion_group": "outer",
+      "printed": false,
+      "valid_single_solid": true,
+      "volume_mm3": 1033.583983031042,
+      "bounds_mm": [
+        -13.499999999999996,
+        28.0,
+        37.0,
+        13.500000000000004,
+        32.0,
+        64.0
+      ]
+    },
+    {
+      "name": "Inner_R_motor",
+      "motion_group": "outer",
+      "printed": false,
+      "valid_single_solid": true,
+      "volume_mm3": 16243.18578948924,
+      "bounds_mm": [
+        -24.499999999999996,
+        34.0,
+        40.5,
+        9.500000000000007,
+        60.00000000000001,
+        60.5
+      ]
+    },
+    {
+      "name": "17_inner_spacer_right",
+      "motion_group": "inner",
+      "printed": true,
+      "valid_single_solid": true,
+      "volume_mm3": 314.11999545080926,
+      "bounds_mm": [
+        -10.999999999999998,
+        23.0,
+        39.5,
+        11.000000000000004,
+        28.0,
+        61.5
+      ],
+      "stl_closed": true,
+      "print_orientation": "Ring face down",
+      "print_bounds_mm": [
+        21.99316200401796,
+        21.986326133408152,
+        5.0
+      ]
+    },
+    {
+      "name": "10_inner_cassette_left",
+      "motion_group": "outer",
+      "printed": true,
+      "valid_single_solid": true,
+      "volume_mm3": 8219.769091000038,
+      "bounds_mm": [
+        -24.50000000000001,
+        -47.00000000000001,
+        33.5,
+        27.499999999999993,
+        -27.999999999999996,
+        67.0
+      ],
+      "stl_closed": true,
+      "print_orientation": "Base or frame face down; inspect supports for horizontal features",
+      "print_bounds_mm": [
+        52.0,
+        19.00000000000001,
+        33.5
+      ]
+    },
+    {
+      "name": "12_inner_hub_left",
+      "motion_group": "inner",
+      "printed": true,
+      "valid_single_solid": true,
+      "volume_mm3": 4007.3708152507916,
+      "bounds_mm": [
+        -12.000000000000004,
+        -34.0,
+        39.5,
+        11.999999999999996,
+        -10.999999999999998,
+        61.5
+      ],
+      "stl_closed": true,
+      "print_orientation": "Journal upright; support the flange and projecting shelf as required",
+      "print_bounds_mm": [
+        24.0,
+        22.0,
+        23.0
+      ]
+    },
+    {
+      "name": "14_inner_retainer_left",
+      "motion_group": "outer",
+      "printed": true,
+      "valid_single_solid": true,
+      "volume_mm3": 1927.932214915179,
+      "bounds_mm": [
+        -23.000000000000007,
+        -28.000000000000007,
+        34.0,
+        22.999999999999993,
+        -23.99999999999999,
+        67.0
+      ],
+      "stl_closed": true,
+      "print_orientation": "Bearing-contact face down; head recesses up",
+      "print_bounds_mm": [
+        46.0,
+        32.963474692579105,
+        4.000000000000018
+      ]
+    },
+    {
+      "name": "Inner_L_bearing",
+      "motion_group": "outer",
+      "printed": false,
+      "valid_single_solid": true,
+      "volume_mm3": 1033.5839830310424,
+      "bounds_mm": [
+        -13.500000000000007,
+        -32.0,
+        37.0,
+        13.499999999999993,
+        -27.999999999999996,
+        64.0
+      ]
+    },
+    {
+      "name": "Inner_L_motor",
+      "motion_group": "outer",
+      "printed": false,
+      "valid_single_solid": true,
+      "volume_mm3": 16243.18578948924,
+      "bounds_mm": [
+        -9.500000000000014,
+        -60.00000000000001,
+        40.5,
+        24.499999999999993,
+        -34.0,
+        60.5
+      ]
+    },
+    {
+      "name": "16_inner_spacer_left",
+      "motion_group": "inner",
+      "printed": true,
+      "valid_single_solid": true,
+      "volume_mm3": 314.11999545080926,
+      "bounds_mm": [
+        -11.000000000000007,
+        -28.000000000000004,
+        39.5,
+        10.999999999999995,
+        -22.999999999999996,
+        61.5
+      ],
+      "stl_closed": true,
+      "print_orientation": "Ring face down",
+      "print_bounds_mm": [
+        21.993162004017957,
+        21.98632613340815,
+        5.000000000000014
+      ]
+    },
+    {
+      "name": "18_output_plate",
+      "motion_group": "inner",
+      "printed": true,
+      "valid_single_solid": true,
+      "volume_mm3": 5369.347575847094,
+      "bounds_mm": [
+        -22.0,
+        -19.00000000000052,
+        46.5,
+        22.0,
+        19.00000000000051,
+        50.5
+      ],
+      "stl_closed": true,
+      "print_orientation": "Flat underside down; countersinks up",
+      "print_bounds_mm": [
+        43.972900188616265,
+        38.00000000000059,
+        4.0
+      ]
+    }
+  ],
+  "source_sha256": {
+    "cad/source/Rebuild_Wrist.FCMacro": "b641f0f84804fb51d5709f6335376bba2f3db0a9e55792bfa51c084495e84ef1",
+    "cad/source/dimensions.json": "7602b8069566bbe1b3132423f2d2e1c1be8758b4101a12f34fd78d7247c19a40"
+  },
+  "notes": [
+    "Motor, bearing and fastener shapes are nominal reference envelopes.",
+    "STL orientation is a starting point; inspect supports and calibrate fits.",
+    "No payload, continuous-duty or material strength rating is established."
+  ]
+}
